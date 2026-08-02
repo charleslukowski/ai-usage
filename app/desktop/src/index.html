@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Usage</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="panel">
+      <header id="hdr" class="hdr">
+        <span class="lead"><span id="vdot" class="d off"></span><b id="vmsg">AI Usage</b></span>
+        <span class="hctl">
+          <button id="refresh" class="iconbtn" type="button" title="Refresh">&#8635;</button>
+          <button id="hide" class="iconbtn" type="button" aria-label="Close" title="Hide to tray">&times;</button>
+        </span>
+      </header>
+
+      <div id="rows" class="rows"></div>
+
+      <footer class="foot">
+        <span id="updated" class="when"></span>
+        <button id="settings" class="iconbtn" type="button" aria-label="Settings" title="Keys">&#9881;</button>
+      </footer>
+    </div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

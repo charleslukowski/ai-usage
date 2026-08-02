@@ -1,0 +1,42 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": [
+    "main",
+    "settings"
+  ],
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "store:default",
+    "core:window:allow-hide",
+    "core:window:allow-show",
+    "core:window:allow-set-focus",
+    "core:window:allow-set-size",
+    {
+      "identifier": "http:default",
+      "allow": [
+        {
+          "url": "https://openrouter.ai/*"
+        },
+        {
+          "url": "https://api.fal.ai/*"
+        },
+        {
+          "url": "https://api.anthropic.com/*"
+        },
+        {
+          "url": "https://api.deepseek.com/*"
+        },
+        {
+          "url": "https://api.openai.com/*"
+        },
+        {
+          "url": "https://api.elevenlabs.io/*"
+        }
+      ]
+    },
+    "notification:default"
+  ]
+}

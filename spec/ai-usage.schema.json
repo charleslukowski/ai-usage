@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-usage.dev/schema/0.1/ai-usage.schema.json",
+  "title": "ai-usage manifest",
+  "description": "Normalized account balance & usage for a single AI-provider account.",
+  "type": "object",
+  "required": ["ai_usage_version", "provider", "as_of", "meters"],
+  "additionalProperties": false,
+  "properties": {
+    "ai_usage_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Spec version, e.g. \"0.1\"."
+    },
+    "provider": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$" },
+        "name": { "type": "string" },
+        "billing": {
+          "enum": ["credit", "usage", "subscription"],
+          "description": "credit = prepaid, counts down; usage = pay-as-you-go, accrues/invoiced; subscription = flat fee with a rolling quota that resets."
+        },
+        "dashboard_url": { "type": "string", "format": "uri" }
+      }
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 timestamp of data freshness."
+    },
+    "account": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "plan": { "type": "string" }
+      }
+    },
+    "meters": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/meter" }
+    },
+    "links": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dashboard": { "type": "string", "format": "uri" },
+        "topup": { "type": "string", "format": "uri" },
+        "docs": { "type": "string", "format": "uri" }
+      }
+    }
+  },
+  "$defs": {
+    "meter": {
+      "type": "object",
+      "required": ["type", "label", "value", "unit"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": ["balance", "spend", "quota", "rate_window"],
+          "description": "balance = prepaid remaining (down); spend = accrued cost (up); quota = used/allowance in a period; rate_window = headroom in a rolling window."
+        },
+        "label": { "type": "string" },
+        "value": { "type": ["number", "null"] },
+        "limit": { "type": ["number", "null"] },
+        "unit": {
+          "type": "string",
+          "description": "ISO-4217 currency (USD) or tokens / requests / credits."
+        },
+        "period": { "enum": ["day", "week", "month", "billing_cycle", "total"] },
+        "resets_at": { "type": ["string", "null"], "format": "date-time" },
+        "status": { "enum": ["ok", "low", "critical", "unknown"] }
+      }
+    }
+  }
+}

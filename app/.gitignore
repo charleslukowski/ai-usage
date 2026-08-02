@@ -1,0 +1,8 @@
+# Real keys live here — never commit. Copy config.example.json → config.json.
+config.json
+
+node_modules/
+dist/
+src-tauri/target/
+.env
+.env.*

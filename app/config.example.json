@@ -1,0 +1,8 @@
+{
+  "thresholds": { "criticalUsd": 5, "lowUsd": 20, "criticalHours": 6, "lowHours": 24 },
+  "providers": [
+    { "id": "openrouter", "enabled": true, "key_env": "OPENROUTER_API_KEY" },
+    { "id": "fal", "enabled": true, "key_env": "FAL_KEY" },
+    { "id": "anthropic", "enabled": true, "key_env": "ANTHROPIC_ADMIN_KEY", "note": "Admin key (sk-admin...), NOT your inference key" }
+  ]
+}

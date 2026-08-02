@@ -1,0 +1,122 @@
+:root {
+  /* Bahnschrift = Windows' DIN. Instrument/gauge typeface, slightly condensed,
+     excellent digits. Inter -> Segoe UI as fallbacks (both installed here). */
+  --sans: "Bahnschrift", "Inter", "Segoe UI", system-ui, sans-serif;
+
+  /* Monochrome. No semantic colour anywhere in the panel — status is conveyed
+     by dot fill (hollow = fine, filled = wants attention), not hue. */
+  --bg: #ffffff;
+  --ink: #14171c;
+  --muted: #5c646f;
+  --faint: #949aa4;
+  --line: #e8e9ec;
+  --line-2: #f2f3f5;
+}
+
+* { box-sizing: border-box; }
+/* Must beat the display:flex rules below — otherwise the `hidden` attribute
+   does nothing and the settings pane leaks onto the main screen. */
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--bg);
+  font-size: 13.5px;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  cursor: default;
+}
+.panel { display: flex; flex-direction: column; overflow-x: hidden; }
+
+.hdr { display: flex; align-items: center; justify-content: space-between; padding: 7px 8px 7px 12px; border-bottom: 1px solid var(--line); }
+.lead { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.lead b { font-size: 13px; font-weight: 400; letter-spacing: 0.01em; }
+.hctl { display: flex; gap: 1px; }
+
+/* status without colour: hollow = healthy, filled = attention */
+.d { width: 9px; height: 9px; border-radius: 50%; flex: none; border: 1.5px solid var(--faint); background: transparent; }
+.d.ok, .d.info { border-color: var(--faint); background: transparent; }
+.d.low { border-color: var(--muted); background: var(--muted); }
+.d.critical { border-color: var(--ink); background: var(--ink); box-shadow: 0 0 0 2px var(--line-2); }
+.d.off, .d.unknown { border-color: var(--line); background: transparent; }
+
+.iconbtn { border: none; background: transparent; padding: 2px 6px; font-size: 15px; line-height: 1; color: var(--faint); cursor: pointer; border-radius: 5px; font-family: var(--sans); }
+.iconbtn:hover { color: var(--ink); background: var(--line-2); }
+
+/* min-width:0 is load-bearing: flex items default to min-width:auto, which
+   made the row grid refuse to shrink and overflow the window (clipping the
+   right-hand columns) instead of fitting inside it. */
+.rows { display: flex; flex-direction: column; width: 100%; min-width: 0; }
+/* dot | name | spark | number | note — number gets its own right-aligned
+   column so figures line up regardless of how long the note is */
+.row { display: grid; grid-template-columns: auto minmax(0, 1fr) 46px 66px 88px; align-items: center; gap: 8px; padding: 7px 12px; width: 100%; min-width: 0; }
+/* trend line: quiet by default, so the number stays the headline */
+.spark { display: block; overflow: visible; }
+.spark polyline { fill: none; stroke: var(--faint); stroke-width: 1.2; stroke-linejoin: round; stroke-linecap: round; }
+.spark-end { fill: var(--muted); }
+.row:hover .spark polyline { stroke: var(--muted); }
+.spark-empty { display: block; width: 46px; height: 14px; }
+.row + .row { border-top: 1px solid var(--line-2); }
+.row.clickable { cursor: pointer; }
+.row.clickable:hover { background: var(--line-2); }
+.name { font-size: 13.5px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.amt { font-size: 13.5px; font-weight: 400; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+/* credits count down ("left") vs usage counts up ("spent") */
+/* must not wrap: a wrapped note made rows different heights and got clipped */
+.note { font-size: 10px; color: var(--faint); line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.settings { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; }
+.settings label { display: flex; flex-direction: column; gap: 2px; font-size: 10.5px; color: var(--muted); }
+.settings input { font: inherit; font-size: 12.5px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--ink); }
+.primary { align-self: flex-start; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); font-family: var(--sans); font-size: 12.5px; font-weight: 400; padding: 5px 14px; border-radius: 6px; cursor: pointer; }
+.primary:hover { opacity: 0.85; }
+
+/* ---- settings window (its own, resizable, does not auto-hide) ---- */
+.settings-page { padding: 0 0 52px; font-size: 13px; }
+.sp-head { padding: 12px 14px 10px; border-bottom: 1px solid var(--line); }
+.sp-head h1 { margin: 0; font-size: 14px; font-weight: 400; }
+.sp-sub { margin: 3px 0 0; font-size: 11.5px; color: var(--muted); }
+.sp-list { display: flex; flex-direction: column; }
+
+/* two lines per provider: [toggle · name · thresholds] then the key field */
+.sp-row { padding: 9px 14px; border-bottom: 1px solid var(--line-2); display: flex; flex-direction: column; gap: 5px; }
+.sp-row-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sp-toggle { display: flex; align-items: center; gap: 7px; cursor: pointer; min-width: 0; }
+.sp-name { font-size: 13px; white-space: nowrap; }
+.sp-th { display: flex; gap: 8px; flex: none; }
+.sp-th label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); }
+.sp-th input { font: inherit; font-size: 12px; width: 48px; padding: 3px 5px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--ink); text-align: right; }
+.sp-key { font: inherit; font-size: 12.5px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--ink); width: 100%; }
+.sp-key::placeholder { color: var(--faint); }
+
+.sp-foot { position: fixed; bottom: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 14px; border-top: 1px solid var(--line); background: var(--bg); }
+.sp-saved { font-size: 11.5px; color: var(--muted); }
+.sp-actions { display: flex; gap: 8px; }
+.ghostbtn { border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 12.5px; padding: 5px 12px; border-radius: 6px; cursor: pointer; }
+.ghostbtn:hover { color: var(--ink); border-color: var(--faint); }
+.settings-page .shame { margin: 0; padding: 10px 14px; border-top: none; }
+.settings-page .shame-h { color: var(--muted); }
+.settings-page .sc { font-size: 10px; padding: 1px 5px; }
+
+.shame { margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--line); }
+.shame-h { font-size: 10px; font-weight: 400; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.shame-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.sc { font-size: 10.5px; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--line); color: var(--faint); white-space: nowrap; }
+.shame-sub { font-size: 10px; color: var(--faint); margin-top: 6px; }
+
+.foot { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 4px 12px; border-top: 1px solid var(--line); }
+.when { font-size: 10.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.when.stale { color: var(--ink); text-decoration: underline dotted; text-underline-offset: 2px; }
+
+button:focus-visible, input:focus-visible { outline: 1.5px solid var(--ink); outline-offset: 1px; }
+
+/* dark mode = the same monochrome, inverted */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1d22; --ink: #eceef1; --muted: #99a1ac; --faint: #6b7480;
+    --line: #2c3037; --line-2: #23262c;
+  }
+  .d.critical { box-shadow: 0 0 0 2px var(--line-2); }
+  .iconbtn:hover { background: var(--line-2); }
+}

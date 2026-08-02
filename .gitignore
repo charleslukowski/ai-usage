@@ -1,0 +1,31 @@
+# Build output
+node_modules/
+dist/
+target/
+*.exe
+*.msi
+
+# Secrets & local config.
+# API keys live in the OS credential store (Windows Credential Manager), never
+# in this repo — but keep these ignored so a stray local file can't be committed.
+config.json
+keys.json
+.env
+.env.*
+!config.example.json
+
+# Generated: src/engine is a copy of app/engine, re-synced by scripts/sync-engine.mjs
+# on every dev/build. Committing it would create a second source of truth.
+app/desktop/src/engine/
+
+# Internal working docs — project management lives on disk, not in the public repo
+/STATUS.md
+/CLAUDE.md
+/PORTS_PLAN.md
+/PUBLISH_PLAN.md
+
+# Tooling / OS
+.claude/settings.local.json
+.vscode/
+.DS_Store
+Thumbs.db

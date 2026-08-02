@@ -1,0 +1,41 @@
+{
+  "ai_usage_version": "0.1",
+  "provider": {
+    "id": "openrouter",
+    "name": "OpenRouter",
+    "billing": "credit",
+    "dashboard_url": "https://openrouter.ai/credits"
+  },
+  "as_of": "2026-07-18T14:03:11Z",
+  "account": { "label": "personal", "plan": "pay-as-you-go" },
+  "meters": [
+    {
+      "type": "balance",
+      "label": "Credit balance",
+      "value": 42.17,
+      "limit": null,
+      "unit": "USD",
+      "status": "ok"
+    },
+    {
+      "type": "spend",
+      "label": "Spent this month",
+      "value": 18.4,
+      "limit": null,
+      "unit": "USD",
+      "period": "month"
+    },
+    {
+      "type": "rate_window",
+      "label": "Requests remaining (per min)",
+      "value": 188,
+      "limit": 200,
+      "unit": "requests",
+      "resets_at": "2026-07-18T14:04:00Z"
+    }
+  ],
+  "links": {
+    "dashboard": "https://openrouter.ai/credits",
+    "topup": "https://openrouter.ai/credits"
+  }
+}

@@ -1,0 +1,375 @@
+<title>AI Usage Report Card</title>
+<style>
+  :root {
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: "SF Mono", "Cascadia Code", "JetBrains Mono", "Roboto Mono", Consolas, "Liberation Mono", monospace;
+
+    --ground: #f4f5f7;
+    --card: #ffffff;
+    --ink: #14181f;
+    --ink-2: #55606f;
+    --ink-3: #7c8593;
+    --line: #e3e6ea;
+    --line-2: #eceef1;
+    --accent: #274b70;
+
+    --g-a: #137a4d;
+    --g-b: #1f6f7a;
+    --g-c: #8a580f;
+    --g-d: #ab451c;
+    --g-f: #a11d1d;
+
+    --yes-bg: #e6f3ec; --yes-fg: #0f6b41;
+    --dash-bg: #f5ecd9; --dash-fg: #855510;
+    --no-bg: #eef0f2;  --no-fg: #6c7684;
+  }
+
+  .page {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    padding: clamp(28px, 6vw, 72px) 20px 64px;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  .measure { max-width: 660px; }
+
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+  a:hover { border-bottom-color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 18px;
+  }
+  h1 {
+    font-size: clamp(34px, 6vw, 54px);
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    font-weight: 640;
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+  .dek { font-size: clamp(16px, 2.1vw, 19px); color: var(--ink-2); margin: 0 0 40px; }
+  .dek strong { color: var(--ink); font-weight: 600; }
+
+  /* headline stat + distribution */
+  .verdict {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 26px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: clamp(22px, 3.5vw, 34px);
+    margin-bottom: 52px;
+  }
+  @media (min-width: 720px) { .verdict { grid-template-columns: 260px 1fr; align-items: center; gap: 40px; } }
+
+  .bignum { font-family: var(--mono); font-size: clamp(52px, 10vw, 76px); font-weight: 620; letter-spacing: -0.03em; line-height: 0.9; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .bignum .slash { color: var(--line); font-weight: 400; }
+  .bignum-cap { display: block; margin-top: 12px; font-size: 14px; line-height: 1.4; color: var(--ink-2); max-width: 22ch; }
+
+  .dist { display: flex; flex-direction: column; gap: 12px; }
+  .dist-bar { display: flex; align-items: stretch; gap: 4px; height: 46px; }
+  .seg { display: flex; align-items: center; justify-content: center; border-radius: 5px; color: #fff; font-family: var(--mono); font-weight: 620; font-size: 15px; font-variant-numeric: tabular-nums; min-width: 30px; }
+  .seg-a { flex: 1 1 0; color: var(--ink-3); background: transparent; border: 1px dashed var(--line); }
+  .seg-b { flex: 1 1 0; background: var(--g-b); }
+  .seg-c { flex: 5 1 0; background: var(--g-c); }
+  .seg-d { flex: 2 1 0; background: var(--g-d); }
+  .seg-f { flex: 5 1 0; background: var(--g-f); }
+  .dist-key { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); letter-spacing: 0.02em; }
+  .dist-key b { color: var(--ink); font-weight: 620; }
+
+  /* section headers */
+  .sec { margin-bottom: 52px; }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .sec-head h2 { font-size: 22px; font-weight: 620; letter-spacing: -0.01em; margin: 0; }
+  .sec-head .note { font-size: 13.5px; color: var(--ink-3); }
+
+  /* ledger table */
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; min-width: 900px; }
+  caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  thead th {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 500; text-align: left; padding: 14px 16px; border-bottom: 1px solid var(--line); white-space: nowrap;
+  }
+  tbody td { padding: 15px 16px; border-bottom: 1px solid var(--line-2); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #fafbfc; }
+
+  .prov-name { font-weight: 600; font-size: 15.5px; white-space: nowrap; }
+  .tag { display: inline-block; margin-left: 7px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; vertical-align: 1px; }
+
+  .g { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 6px; color: #fff; font-family: var(--mono); font-weight: 640; font-size: 15px; }
+  .g-a { background: var(--g-a); } .g-b { background: var(--g-b); } .g-c { background: var(--g-c); } .g-d { background: var(--g-d); } .g-f { background: var(--g-f); }
+
+  .p { display: inline-block; font-family: var(--mono); font-size: 12px; line-height: 1; padding: 5px 8px; border-radius: 5px; white-space: nowrap; }
+  .p-yes { background: var(--yes-bg); color: var(--yes-fg); font-weight: 600; }
+  .p-dash { background: var(--dash-bg); color: var(--dash-fg); }
+  .p-no { background: var(--no-bg); color: var(--no-fg); }
+
+  /* billing-model chips — categorical, kept distinct from the A–F grade scale */
+  .bill { display: inline-block; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.03em; text-transform: uppercase; padding: 4px 8px; border-radius: 5px; white-space: nowrap; }
+  .bill-credit { background: #e7eef7; color: #2a4d73; }
+  .bill-usage { background: #eceef1; color: #55606f; }
+  .bill-sub { background: #efe9f5; color: #5b4a7a; }
+  .billkey { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 12.5px; color: var(--ink-2); margin: 2px 0 16px; }
+  .billkey > span { display: inline-flex; align-items: center; gap: 7px; }
+
+  .auth { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
+  .why { font-size: 14px; color: var(--ink-2); line-height: 1.5; min-width: 230px; }
+
+  /* rubric */
+  .rubric { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .rub { background: var(--card); padding: 18px 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .rub .why { min-width: 0; }
+  .rub-top { display: flex; align-items: center; gap: 10px; }
+  .rub-top .name { font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3); }
+
+  /* provider callout */
+  .callout { background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 22px 24px; margin-bottom: 48px; }
+  .callout h3 { margin: 0 0 8px; font-size: 17px; font-weight: 620; }
+  .callout p { margin: 0; color: var(--ink-2); font-size: 15px; }
+  .callout code { font-family: var(--mono); font-size: 13px; background: var(--line-2); padding: 2px 6px; border-radius: 4px; color: var(--ink); }
+
+  footer { border-top: 1px solid var(--line); padding-top: 22px; color: var(--ink-3); font-size: 13px; line-height: 1.6; }
+  footer p { margin: 0 0 8px; max-width: 720px; }
+  footer .mono { font-family: var(--mono); font-size: 12px; }
+</style>
+
+<div class="page">
+  <div class="wrap">
+
+    <p class="eyebrow">AI Usage · Provider Report Card · Draft v0.1</p>
+    <h1>Can you see your own money?</h1>
+    <p class="dek measure">Every AI provider takes your money. Almost none let you read your <strong>balance</strong> or <strong>spend</strong> from an API with the key you already use. This is a scorecard of who does &mdash; graded the way a ratings agency grades debt: from a clean <strong>A</strong> to a dashboard-only <strong>F</strong>.</p>
+
+    <section class="verdict" aria-label="Headline finding">
+      <div>
+        <div class="bignum"><span aria-hidden="true">0</span><span class="slash" aria-hidden="true">&thinsp;/&thinsp;</span><span aria-hidden="true">13</span></div>
+        <span class="bignum-cap">providers expose a clean, standard usage feed. Exactly one lets you read a balance with your normal key. The rest need a special-scope key, a scraper, or a login.</span>
+      </div>
+      <div class="dist">
+        <div class="dist-bar" role="img" aria-label="Grade distribution: zero A, one B, five C, two D, five F">
+          <span class="seg seg-a">A&thinsp;0</span>
+          <span class="seg seg-b">B&thinsp;1</span>
+          <span class="seg seg-c">C&thinsp;5</span>
+          <span class="seg seg-d">D&thinsp;2</span>
+          <span class="seg seg-f">F&thinsp;5</span>
+        </div>
+        <div class="dist-key">Nobody has earned an <b>A</b> yet &mdash; that is the whole point. An A is a manifest away.</div>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head">
+        <h2>The ledger</h2>
+        <span class="note">13 providers a solo AI builder actually pays &mdash; best to worst.</span>
+      </div>
+      <p class="billkey">
+        <span><span class="bill bill-credit">credit</span> prepaid, counts down</span>
+        <span><span class="bill bill-usage">usage</span> pay-as-you-go, accrues</span>
+        <span><span class="bill bill-sub">subscription</span> flat fee, rolling limit that resets</span>
+      </p>
+      <div class="scroll">
+        <table>
+          <caption>AI providers graded on programmatic access to account balance and spend.</caption>
+          <thead>
+            <tr>
+              <th scope="col">Provider</th>
+              <th scope="col">Billing</th>
+              <th scope="col">Grade</th>
+              <th scope="col">Balance</th>
+              <th scope="col">Spend</th>
+              <th scope="col">Limits</th>
+              <th scope="col">Auth</th>
+              <th scope="col">Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="prov-name">OpenRouter</span></td>
+              <td><span class="bill bill-credit">credit</span></td>
+              <td><span class="g g-b" aria-label="Grade B">B</span></td>
+              <td><span class="p p-yes">&check;</span></td>
+              <td><span class="p p-yes">&check;</span></td>
+              <td><span class="p p-yes">&check;</span></td>
+              <td><span class="auth">normal key</span></td>
+              <td class="why">Cleanest today: one key, the whole picture. An A the day it serves a manifest.</td>
+            </tr>
+            <tr>
+              <td><span class="prov-name">fal.ai</span></td>
+              <td><span class="bill bill-credit">credit</span></td>
+              <td><span class="g g-c" aria-label="Grade C">C</span></td>
+              <td><span class="p p-yes">&check;</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="auth">billing key</span></td>
+              <td class="why">Endpoint &amp; auth are right, but a standard inference key returns <code style="font-family:var(--mono);font-size:12px">403</code> &mdash; balance needs a billing-scoped key. <em>Verified live.</em></td>
+            </tr>
+            <tr>
+              <td><span class="prov-name">Anthropic</span> <span class="tag">API</span></td>
+              <td><span class="bill bill-usage">usage</span></td>
+              <td><span class="g g-c" aria-label="Grade C">C</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="p p-yes">&check;</span></td>
+              <td><span class="p p-dash">headers</span></td>
+              <td><span class="auth">admin key</span></td>
+              <td class="why">Spend only &mdash; and only with a separate <code style="font-family:var(--mono);font-size:12px">sk-admin</code> key. No prepaid balance.</td>
+            </tr>
+            <tr>
+              <td><span class="prov-name">OpenAI</span></td>
+              <td><span class="bill bill-credit">credit</span></td>
+              <td><span class="g g-c" aria-label="Grade C">C</span></td>
+              <td><span class="p p-dash">dashboard</span></td>
+              <td><span class="p p-yes">&check;</span></td>
+              <td><span class="p p-dash">headers</span></td>
+              <td><span class="auth">admin key</span></td>
+              <td class="why">Costs API wants an <code style="font-family:var(--mono);font-size:12px">sk-admin</code> key; prepaid balance stays in the dashboard.</td>
+            </tr>
+            <tr>
+              <td><span class="prov-name">Railway</span></td>
+              <td><span class="bill bill-usage">usage</span></td>
+              <td><span class="g g-c" aria-label="Grade C">C</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="p p-dash">est.</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="auth">account token</span></td>
+              <td class="why">Estimated month cost via a GraphQL query you assemble yourself. No REST, no balance.</td>
+            </tr>
+            <tr>
+              <td><span class="prov-name">Vercel</span></td>
+              <td><span class="bill bill-sub">subscription</span></td>
+              <td><span class="g g-c" aria-label="Grade C">C</span></td>
+              <td><span class="p p-dash">gateway</span></td>
+              <td><span class="p p-yes">&check;</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="auth">API token</span></td>
+              <td class="why">Plan fee + usage. Platform gives spend; a real balance exists only inside the AI Gateway product.</td>
+            </tr>
+            <tr>
+              <td><span class="prov-name">Replicate</span></td>
+              <td><span class="bill bill-usage">usage</span></td>
+              <td><span class="g g-d" aria-label="Grade D">D</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="p p-dash">headers</span></td>
+              <td><span class="auth">&mdash;</span></td>
+              <td class="why">No billing API. Rate-limit response headers are the only live signal.</td>
+            </tr>
+            <tr>
+              <td><span class="prov-name">Resend</span></td>
+              <td><span class="bill bill-sub">subscription</span></td>
+              <td><span class="g g-d" aria-label="Grade D">D</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="p p-dash">headers</span></td>
+              <td><span class="auth">&mdash;</span></td>
+              <td class="why">Plan quota shows up only in response headers and 429 bodies. No balance concept.</td>
+            </tr>
+            <tr>
+              <td><span class="prov-name">Anthropic</span> <span class="tag">Max plan</span></td>
+              <td><span class="bill bill-sub">subscription</span></td>
+              <td><span class="g g-f" aria-label="Grade F">F</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="p p-dash">dashboard</span></td>
+              <td><span class="auth">&mdash;</span></td>
+              <td class="why">No balance to read &mdash; it's a plan. The rolling limit you most want has no API at all.</td>
+            </tr>
+            <tr>
+              <td><span class="prov-name">Hugging Face</span> <span class="tag">PRO</span></td>
+              <td><span class="bill bill-sub">subscription</span></td>
+              <td><span class="g g-f" aria-label="Grade F">F</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="p p-dash">dashboard</span></td>
+              <td><span class="p p-dash">dashboard</span></td>
+              <td><span class="auth">&mdash;</span></td>
+              <td class="why">Monthly included credits, dashboard-only. Resets each cycle; no dollar balance.</td>
+            </tr>
+            <tr>
+              <td><span class="prov-name">Google Gemini</span> <span class="tag">AI Studio</span></td>
+              <td><span class="bill bill-usage">usage</span></td>
+              <td><span class="g g-f" aria-label="Grade F">F</span></td>
+              <td><span class="p p-dash">dashboard</span></td>
+              <td><span class="p p-dash">GCP</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="auth">&mdash;</span></td>
+              <td class="why">Prepay balance is dashboard-only; spend means the heavyweight GCP Billing API.</td>
+            </tr>
+            <tr>
+              <td><span class="prov-name">Together.ai</span></td>
+              <td><span class="bill bill-credit">credit</span></td>
+              <td><span class="g g-f" aria-label="Grade F">F</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="auth">&mdash;</span></td>
+              <td class="why">Prepaid credits, but no public balance or usage endpoint.</td>
+            </tr>
+            <tr>
+              <td><span class="prov-name">Groq</span></td>
+              <td><span class="bill bill-credit">credit</span></td>
+              <td><span class="g g-f" aria-label="Grade F">F</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="p p-no">&mdash;</span></td>
+              <td><span class="auth">&mdash;</span></td>
+              <td class="why">No official billing or usage API.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head">
+        <h2>How the grade is set</h2>
+        <span class="note">One question: can a client read your money with the key you already have?</span>
+      </div>
+      <div class="rubric">
+        <div class="rub">
+          <div class="rub-top"><span class="g g-a" aria-hidden="true">A</span><span class="name">native</span></div>
+          <p class="why">Serves an <code style="font-family:var(--mono);font-size:12px">ai-usage</code> manifest at a discovery path, with your normal credential.</p>
+        </div>
+        <div class="rub">
+          <div class="rub-top"><span class="g g-b" aria-hidden="true">B</span><span class="name">clean</span></div>
+          <p class="why">No manifest, but a clean balance or spend read with your normal key. A trivial adapter.</p>
+        </div>
+        <div class="rub">
+          <div class="rub-top"><span class="g g-c" aria-hidden="true">C</span><span class="name">awkward</span></div>
+          <p class="why">Readable, but needs a separate admin key, hand-built GraphQL, or a bolt-on product.</p>
+        </div>
+        <div class="rub">
+          <div class="rub-top"><span class="g g-d" aria-hidden="true">D</span><span class="name">headers</span></div>
+          <p class="why">No usage endpoint &mdash; only response headers or 429 bodies hint at what is left.</p>
+        </div>
+        <div class="rub">
+          <div class="rub-top"><span class="g g-f" aria-hidden="true">F</span><span class="name">dark</span></div>
+          <p class="why">No programmatic path at all. Log in to a dashboard, read it with your eyes.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="callout">
+      <h3>For providers &mdash; an A is a 20-line endpoint</h3>
+      <p>Serve <code>GET /.well-known/ai-usage.json</code> behind your normal auth, return the balance and spend you already compute for your own dashboard, and you move from the red row to the badge. You already have the data. Your users are already asking.</p>
+    </div>
+
+    <footer>
+      <p><strong>Methodology.</strong> Providers are graded on whether account balance and month-to-date spend are readable over an authenticated API with your normal credential, as of July 2026. Grades are our assessment of the public API surface, not the providers' self-reports.</p>
+      <p><strong>Live-checked (2026-07-18).</strong> OpenRouter, fal.ai, and Anthropic were probed against real accounts &mdash; those three grades reflect what a standard key actually returned. OpenRouter read balance + spend cleanly; fal.ai's billing route returned <code style="font-family:var(--mono);font-size:12px">403</code> without a billing-scoped key; Anthropic returned month-to-date spend via a separate Admin key.</p>
+      <p>This is a draft artifact for review, not a published index. Figures shown in the spec examples are illustrative. Provider APIs change &mdash; a grade here is a snapshot, not a promise.</p>
+      <p class="mono">ai-usage manifest v0.1 &nbsp;·&nbsp; /.well-known/ai-usage.json &nbsp;·&nbsp; CC0</p>
+    </footer>
+
+  </div>
+</div>
