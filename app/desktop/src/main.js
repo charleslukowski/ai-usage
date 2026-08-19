@@ -231,7 +231,41 @@ function fitWindow() {
   });
 }
 
+// The panel is a tray popup — it hides itself on blur, so it is off-screen
+// almost all of the time, and `poll` announces each provider as it lands, so a
+// single refresh calls render() once per provider plus once at the end. Doing
+// the full DOM rebuild every time meant ~2,000 invisible rebuilds a day. Track
+// visibility and defer the DOM until the panel is actually on screen; the tray
+// icon still updates every time, because that is the surface you can see.
+let panelVisible = false;
+let pendingPaint = null;
+
 function render(result) {
+  updateTray(result);
+  if (!panelVisible) {
+    pendingPaint = result; // painted on next show, so opening is never stale
+    return;
+  }
+  pendingPaint = null;
+  paintPanel(result);
+}
+
+// Only touch the tray when the verdict actually changed. The level and fill are
+// identical across the partial paints of a poll, so this collapses seven Win32
+// icon rebuilds per poll down to one — and to zero on the common poll where
+// nothing moved.
+let lastTraySig = "";
+function updateTray(result) {
+  const o = result.overall;
+  const fill = worstHeadroom(result);
+  const message = o.message || "";
+  const sig = `${o.level}|${message}|${fill.toFixed(3)}`;
+  if (sig === lastTraySig) return;
+  lastTraySig = sig;
+  invoke("set_status", { level: o.level, message, fill }).catch(() => {});
+}
+
+function paintPanel(result) {
   const o = result.overall;
   $("hdr").className = "hdr v-" + (o.level || "unknown");
   $("vdot").className = "d " + (DOT[o.level] || "off");
@@ -277,8 +311,6 @@ function render(result) {
     row.append(dot, name, spark, amt, n);
     rows.appendChild(row);
   }
-  invoke("set_status", { level: o.level, message: o.message || "", fill: worstHeadroom(result) }).catch(() => {});
-  notifyOnDrop(result);
   fitWindow();
 }
 
@@ -363,11 +395,26 @@ async function refresh() {
     lastSuccess = Date.now();
     lastResult = result;
     render(result);
-    checkAnomalies(result);
+
+    // Alerts run once, on the complete result. Called from inside render() they
+    // fired on every partial paint, so seven overlapping read-modify-write
+    // cycles raced on the same `lastStatus` key — interleaved reads could
+    // re-send a notification already sent, or drop a real crossing. They also
+    // judged partial data, where most providers still held last poll's values.
+    // Failures here must not flip the panel to the error state: the poll
+    // itself succeeded.
+    try {
+      await notifyOnDrop(result);
+      await checkAnomalies(result);
+    } catch (e) {
+      console.error("[ai-usage] alert pass failed", e);
+    }
   } catch (e) {
-    $("vdot").className = "d off";
-    $("hdr").className = "hdr v-unknown";
-    fitWindow();
+    if (panelVisible) {
+      $("vdot").className = "d off";
+      $("hdr").className = "hdr v-unknown";
+      fitWindow();
+    }
   }
   updateFreshness();
 }
@@ -399,6 +446,7 @@ async function checkAnomalies(result) {
 
 // Say plainly when the numbers are old, instead of showing them as current.
 function updateFreshness() {
+  if (!panelVisible) return; // repainted on show, so it can't be seen stale
   const el = $("updated");
   if (!el) return;
   if (!lastSuccess) {
@@ -447,11 +495,16 @@ if (import.meta.env.PROD) {
 // Opening the panel should never show hours-old numbers as if they were current.
 getCurrentWindow()
   .onFocusChanged(({ payload: focused }) => {
+    // The Rust side hides the panel the moment it loses focus, so focus is what
+    // "on screen" means here — and it's what gates the DOM work in render().
+    panelVisible = focused;
     if (!focused) return;
     // Paint what we already know immediately, then update in the background —
     // waiting on six network calls before showing anything made opening the
-    // panel feel slow.
-    if (lastResult) render(lastResult);
+    // panel feel slow. pendingPaint holds anything that landed while hidden.
+    const known = pendingPaint || lastResult;
+    if (known) render(known);
+    updateFreshness();
     if (Date.now() - lastSuccess > 60000) refresh();
   })
   .catch(() => {});
