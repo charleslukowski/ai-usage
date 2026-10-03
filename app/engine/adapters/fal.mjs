@@ -14,7 +14,7 @@ export default {
     const r = await http("https://api.fal.ai/v1/account/billing?expand=credits", {
       headers: { Authorization: `Key ${key}` },
     });
-    if (!r.ok) throw httpError("billing", r.status);
+    if (!r.ok) throw httpError("billing", r.status, r.status === 401 || r.status === 403 ? " (need Admin key)" : "");
     const j = await r.json();
 
     const bal = j?.credits?.current_balance ?? j?.current_balance ?? null;

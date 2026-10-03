@@ -121,6 +121,12 @@ const firstOfNextMonth = () => {
 };
 
 function amountOf(p) {
+  // A failed read has no figure to show — say why, rather than a bare dash that
+  // reads like an empty balance.
+  if (p.error) {
+    const auth = /Admin key|40[13]/.test(p.error);
+    return { text: "—", note: auth ? "needs admin key" : "error", title: `${p.provider.name}: ${p.error}.` };
+  }
   const bal = p.meters.find((m) => m.type === "balance");
   if (bal) {
     // Once there's enough history, say how long it actually lasts at the
@@ -287,7 +293,7 @@ function paintPanel(result) {
       row.classList.add("clickable");
       row.addEventListener("click", () => openUrl(url).catch(() => {}));
     }
-    if (title) row.title = (p.error ? p.error + " — " : "") + (url ? title + " Click to open." : title);
+    if (title) row.title = url ? title + " Click to open." : title;
     // trend line, once there's enough history to be meaningful
     const pts = series(history, p.provider.id);
     let spark;
