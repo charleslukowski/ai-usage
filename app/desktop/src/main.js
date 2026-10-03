@@ -9,7 +9,7 @@ import { isPermissionGranted, requestPermission, sendNotification } from "@tauri
 import { enable as enableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
 import { poll } from "./engine/engine.mjs";
 import { overall as overallOf } from "./engine/manifest.mjs";
-import { sampleFrom, prune, burnPerDay, runwayHours, anomaly, series } from "./engine/history.mjs";
+import { sampleFrom, prune, anomaly, series } from "./engine/history.mjs";
 
 const PROVIDERS = [
   { id: "openrouter", field: "k_openrouter" },
@@ -64,7 +64,6 @@ async function migrateSecrets() {
 const POLL_MS = 5 * 60 * 1000;
 const STALE_MS = 15 * 60 * 1000;
 let history = [];          // rolling samples -> real burn rate
-let burnById = {};         // providerId -> observed $/day
 let lastSuccess = 0;       // epoch ms of the last good poll
 let lastAttempt = 0;
 let lastResult = null;     // last good poll, so the panel can paint instantly
@@ -129,25 +128,10 @@ function amountOf(p) {
   }
   const bal = p.meters.find((m) => m.type === "balance");
   if (bal) {
-    // Once there's enough history, say how long it actually lasts at the
-    // observed burn — measured, not extrapolated from a monthly average.
-    const perDay = burnById[p.provider.id];
-    const hrs = perDay != null ? runwayHours(bal.value, perDay) : null;
-    if (hrs != null) {
-      const left = hrs < 48 ? `~${Math.round(hrs)}h` : `~${Math.round(hrs / 24)}d`;
-      return {
-        text: money(bal),
-        note: `${left} left`,
-        title: `Burning ~$${perDay.toFixed(2)}/day (measured over the last week). Empty around ${new Date(Date.now() + hrs * 3600000).toLocaleDateString(undefined, DATE_FMT)}.`,
-      };
-    }
-    return {
-      text: money(bal),
-      note: "left",
-      title: perDay === 0
-        ? "Prepaid balance — no spend observed yet, so no burn rate."
-        : "Prepaid balance — no reset; collecting history to measure burn rate.",
-    };
+    // Prepaid credits: bought when you choose, drawn down as you use them.
+    // No time-based runway — usage is bursty, so "~2d left" was a guess
+    // dressed up as a fact. Just the money that's left.
+    return { text: money(bal), note: "left", title: "Prepaid credits — goes down as you use them; no reset." };
   }
 
   const q = p.meters.find((m) => m.type === "quota" || m.type === "rate_window");
@@ -394,17 +378,11 @@ async function doRefresh() {
 
     const result = await poll(await buildConfig(), { http: tauriFetch, onProvider: paint });
 
-    // Record this poll, then recompute burn from the accumulated history.
+    // Record this poll; the anomaly check and sparklines read the history.
     const s = await getStore();
     if (!history.length) history = (await s.get("history")) || [];
     history = prune(history.concat(sampleFrom(result)));
     await s.set("history", history);
-
-    burnById = {};
-    for (const p of result.providers) {
-      const b = burnPerDay(history, p.provider.id);
-      if (b != null) burnById[p.provider.id] = b;
-    }
 
     lastSuccess = Date.now();
     lastResult = result;
