@@ -53,12 +53,16 @@ export function prune(history, now = Date.now(), keepDays = 14) {
  * Money consumed between two consecutive samples for one provider.
  * Balances count DOWN (a rise means a top-up -> ignore); spend counts UP
  * (a drop means the billing period rolled over -> ignore).
+ *
+ * Quota meters (e.g. ElevenLabs credits) are deliberately NOT money: using
+ * an already-paid subscription allowance costs nothing extra, and counting
+ * 900 credits as "$900 in the last hour" fired false "unusual spend" alerts.
+ * Running out of quota is covered by the low-headroom status instead.
  */
 export function deltaSpend(prev, cur) {
   if (!prev || !cur) return 0;
   if (prev.b != null && cur.b != null) return Math.max(0, prev.b - cur.b);
   if (prev.s != null && cur.s != null) return Math.max(0, cur.s - prev.s);
-  if (prev.q != null && cur.q != null) return Math.max(0, cur.q - prev.q);
   return 0;
 }
 

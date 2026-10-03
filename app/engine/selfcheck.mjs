@@ -196,6 +196,14 @@ ok("rate_window 25% remaining → low, reads 'window'", sw.status === "low" && /
   ok("anomaly: steady burn is NOT flagged", H.anomaly(steady, "x", { now }) === null);
   ok("anomaly: tiny amounts below the floor are ignored", H.anomaly(steady.concat([{ t: now + HOUR, p: { x: { b: 85.9 } } }]), "x", { now: now + HOUR }) === null);
 
+  // quota-only providers (ElevenLabs credits) use a prepaid allowance — not money.
+  // Real 2026-10-02 history: 4748 -> 5654 credits in 6 min read as "$906 unusual spend".
+  const quota = [];
+  for (let d = 7; d >= 1; d--) quota.push({ t: now - d * DAY, p: { el: { b: null, s: null, q: (7 - d) * 100 } } });
+  quota.push({ t: now - 6 * 60000, p: { el: { b: null, s: null, q: 4748 } } }, { t: now, p: { el: { b: null, s: null, q: 5654 } } });
+  ok("anomaly: quota credits used are NOT flagged as spend", H.anomaly(quota, "el", { now }) === null);
+  ok("burn: quota credits used are not counted as $/day", !H.burnPerDay(quota, "el", { now }));
+
   // prune keeps recent resolution, thins older, drops ancient
   const many = [];
   for (let i = 0; i < 400; i++) many.push({ t: now - i * 10 * 60000, p: { x: { b: 1 } } }); // 10-min steps back ~66h
