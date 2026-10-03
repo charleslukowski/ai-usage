@@ -19,14 +19,14 @@ const RESPONSES = {
     body: { username: "chuck", credits: { current_balance: 8.9, currency: "USD" } },
   },
   "api.anthropic.com/v1/organizations/cost_report": {
-    // Real shape (verified live 2026-07-18): daily buckets, string amounts under results[].
+    // Real shape (verified live 2026-07-18): daily buckets, string amounts (in cents) under results[].
     ok: true,
     status: 200,
     body: {
       data: [
         { starting_at: "2026-07-01T00:00:00Z", ending_at: "2026-07-02T00:00:00Z", results: [] },
-        { starting_at: "2026-07-02T00:00:00Z", ending_at: "2026-07-03T00:00:00Z", results: [{ currency: "USD", amount: "12.10", workspace_id: null }] },
-        { starting_at: "2026-07-03T00:00:00Z", ending_at: "2026-07-04T00:00:00Z", results: [{ currency: "USD", amount: "6.30", workspace_id: null }] },
+        { starting_at: "2026-07-02T00:00:00Z", ending_at: "2026-07-03T00:00:00Z", results: [{ currency: "USD", amount: "1210", workspace_id: null }] },
+        { starting_at: "2026-07-03T00:00:00Z", ending_at: "2026-07-04T00:00:00Z", results: [{ currency: "USD", amount: "630", workspace_id: null }] },
       ],
     },
   },

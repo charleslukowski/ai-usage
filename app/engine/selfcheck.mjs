@@ -58,7 +58,7 @@ ok("OpenRouter status ok", byId.openrouter.summary.status === "ok");
 ok("OpenRouter balance = 42.17 (via /credits: 60.57 - 18.40)", byId.openrouter.meters.find((m) => m.type === "balance")?.value === 42.17);
 ok("fal.ai status low ($8.90 < $20)", byId.fal.summary.status === "low");
 ok("Anthropic status info (spend, no balance)", byId.anthropic.summary.status === "info");
-ok("Anthropic spend = 18.40 (12.10 + 6.30 summed)", byId.anthropic.meters.find((m) => m.type === "spend")?.value === 18.4);
+ok("Anthropic spend = $18.40 (1210 + 630 cents summed)", byId.anthropic.meters.find((m) => m.type === "spend")?.value === 18.4);
 
 // billing classification present on every adapter
 ok("OpenRouter tagged billing=credit", byId.openrouter.provider.billing === "credit");
@@ -70,6 +70,24 @@ ok("OpenAI spend = 2.50 (0.19 + 2.31 string amounts summed)", byId.openai.meters
 ok("ElevenLabs quota = 60000 of 300000 credits", byId.elevenlabs.meters.find((m) => m.type === "quota")?.value === 60000 && byId.elevenlabs.meters.find((m) => m.type === "quota")?.limit === 300000);
 ok("ElevenLabs reports credits, matching its dashboard wording", byId.elevenlabs.meters.find((m) => m.type === "quota")?.unit === "credits");
 ok("ElevenLabs billing=subscription, judged as quota (80% left, ok)", byId.elevenlabs.provider.billing === "subscription" && byId.elevenlabs.summary.status === "ok" && /quota left/.test(byId.elevenlabs.summary.headline));
+
+// Anthropic paginates (default 7 buckets/page): every page must be summed.
+{
+  const urls = [];
+  const pages = {
+    p1: { data: [{ results: [{ amount: "500", currency: "USD" }] }], has_more: true, next_page: "p2" },
+    p2: { data: [{ results: [{ amount: "250", currency: "USD" }] }], has_more: false, next_page: null },
+  };
+  const paged = (url) => {
+    urls.push(url);
+    const body = url.includes("page=p2") ? pages.p2 : pages.p1;
+    return Promise.resolve({ ok: true, status: 200, json: async () => body });
+  };
+  const m = await anthropic.read({ key: "mock", http: paged, now: new Date(Date.UTC(2026, 8, 20)) });
+  ok("Anthropic follows next_page and sums all pages ($7.50)", m.meters[0]?.value === 7.5 && urls.length === 2);
+  ok("Anthropic asks for a full month per page (limit=31)", urls[0].includes("limit=31"));
+  ok("Anthropic sends an RFC 3339 starting_at", urls[0].includes(encodeURIComponent("2026-09-01T00:00:00.000Z")));
+}
 
 // 2. Schema conformance — validate each adapter's raw (pre-summary) manifest
 for (const [name, adapter] of [["openrouter", openrouter], ["fal", fal], ["anthropic", anthropic], ["deepseek", deepseek], ["openai", openai], ["elevenlabs", elevenlabs]]) {

@@ -146,7 +146,7 @@ function amountOf(p) {
 
   const q = p.meters.find((m) => m.type === "quota" || m.type === "rate_window");
   if (q && q.value != null && q.limit) {
-    const left = q.type === "rate_window" ? q.value / q.limit : (q.limit - q.value) / q.limit;
+    const left = Math.max(0, q.type === "rate_window" ? q.value / q.limit : (q.limit - q.value) / q.limit);
     const note = q.resets_at ? resetNote(q.resets_at).trim() : "left" + (WHEN[q.period] || "");
     // Show the raw figures too — a bare percentage can't be checked against the
     // provider's own dashboard, and "98%" hides whether it's 5k or 5M used.
@@ -365,7 +365,15 @@ async function notifyOnDrop(result) {
   } catch {}
 }
 
-async function refresh() {
+// The ticker, opening the panel, the button and the settings window can all ask
+// for a refresh. Overlapping polls appended duplicate history samples and raced
+// the alert bookkeeping, so a request that lands mid-poll joins the one running.
+let inFlight = null;
+function refresh() {
+  return (inFlight ??= doRefresh().finally(() => { inFlight = null; }));
+}
+
+async function doRefresh() {
   lastAttempt = Date.now();
   try {
     // Fill rows in as each provider answers. DeepSeek/ElevenLabs return in
@@ -436,7 +444,7 @@ async function checkAnomalies(result) {
       if (granted) {
         sendNotification({
           title: `${p.provider.name}: unusual spend`,
-          body: `$${a.recent.toFixed(2)} in the last hour — about ${Math.round(a.ratio)}× normal.`,
+          body: `${money({ value: Math.round(a.recent * 100) / 100, unit: p.meters.find((m) => m.type === "balance" || m.type === "spend")?.unit })} in the last hour — about ${Math.round(a.ratio)}× normal.`,
         });
       }
     } catch {}

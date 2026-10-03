@@ -114,7 +114,8 @@ function summarizeWindow(name, w) {
   if (w.value == null || w.limit == null || w.limit === 0) {
     return { status: "unknown", headline: `${name} — usage window (no numbers)`, runwayHours: null };
   }
-  const pctLeft = w.type === "rate_window" ? (w.value / w.limit) * 100 : ((w.limit - w.value) / w.limit) * 100;
+  // Clamped: usage past the allowance (overage / extension) would read as a negative %.
+  const pctLeft = Math.max(0, w.type === "rate_window" ? (w.value / w.limit) * 100 : ((w.limit - w.value) / w.limit) * 100);
   const status = w.status ?? (pctLeft <= 10 ? "critical" : pctLeft <= 25 ? "low" : "ok");
   const resets = w.resets_at ? `, resets ${new Date(w.resets_at).toLocaleTimeString()}` : "";
   const kind = w.type === "rate_window" ? "window" : "quota";
